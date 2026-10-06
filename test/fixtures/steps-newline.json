@@ -1,0 +1,8 @@
+[
+  {
+    "method": "POST",
+    "path": "/links",
+    "body": { "url": "https://example.com/a\nb" }
+  },
+  { "method": "GET", "path": "{short}" }
+]

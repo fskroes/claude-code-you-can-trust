@@ -1,0 +1,25 @@
+{
+  "name": "shortlinks-companion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Companion code for the book. Every code block in the book is a region of a file here.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fskroes/claude-code-you-can-trust.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node app/server.mjs",
+    "test": "node --test --test-timeout=30000 \"test/*.test.mjs\"",
+    "verify": "node .claude/skills/verify-app/scripts/verify.mjs",
+    "structure": "node tools/check-structure.mjs",
+    "mutate": "node tools/mutate.mjs",
+    "corrections": "node tools/mine-corrections.mjs",
+    "sample": "node tools/sample-landed.mjs",
+    "evals": "node evals/run.mjs"
+  }
+}

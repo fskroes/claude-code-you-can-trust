@@ -1,0 +1,42 @@
+diff --git a/app/server.mjs b/app/server.mjs
+index 34b1847..9026d2f 100644
+--- a/app/server.mjs
++++ b/app/server.mjs
+@@ -65,14 +65,8 @@ export function createApp({ dataDir, commit }) {
+       }
+       if (!isValidUrl(body?.url))
+         return send(res, 400, { error: 'bad_url' })
+-      // #region store-parsed
+-      // Store the parsed form. The parser drops line breaks that the
+-      // raw text keeps, and a line break in a Location header stops the
+-      // response.
+-      const url = new URL(body.url).href
+-      // #endregion store-parsed
+-      const code = store.add(url)
+-      return send(res, 201, { code, url, short: `/l/${code}` })
++      const code = store.add(body.url)
++      return send(res, 201, { code, url: body.url, short: `/l/${code}` })
+     }
+ 
+     const match = pathname.match(/^\/l\/([a-z0-9]{6})$/)
+@@ -85,19 +79,7 @@ export function createApp({ dataDir, commit }) {
+ 
+     return send(res, 404, { error: 'not_found' })
+   }
+-
+-  // #region catch-all
+-  // One bad request must not stop the server for everyone. An error
+-  // inside a handler becomes a 500 for that request, and the error goes
+-  // to the log.
+-  return createServer((req, res) => {
+-    route(req, res).catch((err) => {
+-      console.error(err)
+-      if (!res.headersSent) send(res, 500, { error: 'internal' })
+-      else res.destroy()
+-    })
+-  })
+-  // #endregion catch-all
++  return createServer(route)
+ }
+ 
+ function currentCommit() {

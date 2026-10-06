@@ -1,0 +1,13 @@
+node_modules/
+data/
+# Keep the project skills, also when a parent or global ignore file
+# excludes folders named "skills".
+!.claude/skills/
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+CLAUDE.local.md
+triage/
+evals/results/latest/
+.claude/worktrees/
