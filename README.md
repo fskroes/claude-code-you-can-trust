@@ -4,6 +4,10 @@ A small link shortener, and the tools around it that let a coding agent check it
 own work. Every code block in the book is a part of a file here, or a command you
 can run here. Lines such as `// #region checks` mark the parts the book prints.
 
+The book is on Amazon: [*Claude Code You Can Trust*](https://www.amazon.com/dp/B0HMC322BL).
+Chapter 10, "The builder does not grade its own work", is free to read at
+https://1yc.dev/books/claude-code-you-can-trust/chapter-10.
+
 Node.js 22 or later and git. No dependencies to install.
 
 ```bash
