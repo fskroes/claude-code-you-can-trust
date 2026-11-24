@@ -47,7 +47,6 @@ test('only text a person typed counts as a prompt', () => {
 })
 
 test('a prompt with a pasted image counts by its text', () => {
-  // A first version needed every part to be text, so these were lost.
   const user = (content) => ({ type: 'user', message: { content } })
   const image = { type: 'image', source: { type: 'base64' } }
   const text = { type: 'text', text: 'No, this one' }
@@ -83,14 +82,11 @@ test('the fixture transcripts give the counts the book prints', () => {
 })
 
 test('known false positive: a log line that says "wrong" near the start', () => {
-  // The script finds candidates. A person, or a model, reads them.
   const [example] = mine([FIXTURES]).examples.wrong
   assert.match(example, /^Here is the log/)
 })
 
 test('subagent transcripts are not read', () => {
-  // The fixture line has no isSidechain flag and reads as a correction,
-  // so only the rule "top-level files only" keeps it out of the count.
   const all = Object.values(mine([FIXTURES]).examples).flat()
   assert.equal(
     all.some((t) => t.includes('No tests cover')),

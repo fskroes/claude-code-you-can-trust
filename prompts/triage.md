@@ -6,8 +6,8 @@ the report is true on the current code, with evidence.
 2. Try to reproduce it. Use the code, the tests (`npm test`) and the
    verify script (`node .claude/skills/verify-app/scripts/verify.mjs`,
    with no arguments). If the report needs a request that the verify
-   script does not make, use `node tools/request.mjs '<steps>'`. Its
-   first comment shows the format. It starts a fresh copy of the app
+   script does not make, use `node tools/request.mjs '<steps>'`.
+   `node tools/request.mjs --help` shows the format. It starts a fresh copy of the app
    and says if the app stopped running. Each part of a command must be
    one of these: `cmd; echo "exit=$?"` is refused because of the
    `echo`, and the verify script is refused with any argument.

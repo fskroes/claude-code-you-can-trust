@@ -20,8 +20,6 @@ const VERIFY = fileURLToPath(
   ),
 )
 
-// Async on purpose: spawnSync would block the event loop that serves
-// the app under test in the same process.
 function run(args) {
   return new Promise((resolve) => {
     execFile(
@@ -80,8 +78,6 @@ test('nothing listening at the URL is a failure, not a pass', async () => {
 })
 
 test('an app that never answers fails the check, it does not hang', async () => {
-  // A reviewer made POST /links never answer, and the first version
-  // waited for ever.
   const server = createServer((req, res) => {
     if (req.url === '/healthz') res.end('{"ok":true}')
   })
@@ -101,8 +97,6 @@ test('an app that never answers fails the check, it does not hang', async () => 
 test('a bad argument exits 2', () => {
   assert.throws(() => parseArgs(['--colour']), /unknown argument/)
   assert.throws(() => parseArgs(['--url']), /needs a value/)
-  // A reviewer found that an agent allowed to run this script could
-  // point --url at any host.
   assert.throws(
     () => parseArgs(['--url', 'https://example.com']),
     /not this machine: add --allow-remote/,
@@ -115,8 +109,6 @@ test('a bad argument exits 2', () => {
     parseArgs(['--url', 'http://127.0.0.1:9']).url,
     'http://127.0.0.1:9',
   )
-  // Found by a reviewer: without --url the flag was ignored and the run
-  // passed.
   assert.throws(
     () => parseArgs(['--expect-commit', 'abc1234']),
     /needs --url/,

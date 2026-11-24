@@ -11,11 +11,8 @@ import { git, tempRepo } from './helpers.mjs'
 
 test('isoWeek follows ISO 8601, including the turn of the year', () => {
   assert.equal(isoWeek(new Date('2026-10-05T12:00:00Z')), '2026-W41')
-  // a Thursday
   assert.equal(isoWeek(new Date('2026-01-01T12:00:00Z')), '2026-W01')
-  // a Friday
   assert.equal(isoWeek(new Date('2027-01-01T12:00:00Z')), '2026-W53')
-  // a Monday
   assert.equal(isoWeek(new Date('2024-12-30T12:00:00Z')), '2025-W01')
 })
 
@@ -38,8 +35,6 @@ test('a sample has no repeats and never more items than exist', () => {
   assert.deepEqual([...picked].sort(), items)
 })
 
-// Commit with a fixed date, so the test gives the same answer in any
-// week it runs.
 function commitAt(repo, when, message) {
   process.env.GIT_COMMITTER_DATE = when
   try {
@@ -101,8 +96,6 @@ test('only changes on the base branch in that week, one per merge', () => {
 })
 
 test('a commit that lands later does not change an earlier sample', () => {
-  // A first version took "the last 7 days". A reviewer landed one more
-  // commit and the same seed picked other changes.
   const repo = tempRepo('main')
   try {
     for (let i = 1; i <= 8; i++)

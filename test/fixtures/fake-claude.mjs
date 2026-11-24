@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-// Stands in for "claude -p" in the gate tests: no model, no network, no
-// cost. FAKE_CLAUDE_MODE picks the answer. FAKE_CLAUDE_ARGS, when set,
-// is a file that receives the arguments, so a test can check what the
-// script asked for.
 import { appendFileSync } from 'node:fs'
 
 if (process.env.FAKE_CLAUDE_ARGS)

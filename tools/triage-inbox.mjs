@@ -1,12 +1,4 @@
 #!/usr/bin/env node
-// The outer loop. Bug reports arrive in inbox/ (from a form, an email
-// rule, a chat bot: anything that can write a file). For each new
-// report, run Claude Code once, headless, with read-only tools, and
-// append its verdict to triage/queue.md. A person reads the queue and
-// decides what to fix. Nothing here edits code.
-//
-//   node tools/triage-inbox.mjs
-//   node tools/triage-inbox.mjs --claude ./path/to/claude
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
@@ -23,11 +15,6 @@ import { fileURLToPath } from 'node:url'
 export const VERDICTS = ['REPRODUCED', 'NOT REPRODUCED', 'UNCLEAR']
 
 // #region tools
-// Read, and run three checks. No general "node -e" or "curl": either
-// one can run any code or send data anywhere. The verify rule has no
-// "*": with arguments, --url could point the checks at another host.
-// No Skill rule either: the skill's own allowed-tools is that wider
-// rule. tools/request.mjs is the narrow way to make other requests.
 export const ALLOWED_TOOLS = [
   'Read',
   'Grep',
@@ -57,7 +44,6 @@ export function newReports(root, seen) {
 // #endregion new-reports
 
 // #region verdict
-// The model's answer is checked by code before anyone trusts it.
 export function parseResult(stdout) {
   let out
   try {
@@ -65,7 +51,6 @@ export function parseResult(stdout) {
   } catch {
     return { ok: false, why: 'claude did not print JSON' }
   }
-  // "null", "42" and "[1]" are JSON too, but not a result object.
   if (typeof out !== 'object' || out === null || Array.isArray(out))
     return { ok: false, why: 'claude did not print a JSON object' }
   if (out.is_error)
@@ -76,12 +61,7 @@ export function parseResult(stdout) {
   if (out.subtype !== 'success')
     return { ok: false, why: `run ended with ${out.subtype}` }
   const text = String(out.result ?? '').trim()
-  // The prompt asks for the verdict as the first word. A real run
-  // answered "**NOT REPRODUCED**", in bold. Strip Markdown marks before
-  // reading it.
   const start = text.replace(/^[\s*#_>`]+/, '')
-  // The whole word, in capitals: "REPRODUCEDX" and "Reproduced" are
-  // not verdicts.
   const verdict = VERDICTS.find(
     (v) => start.startsWith(v) && !/^\w/.test(start.slice(v.length)),
   )
@@ -130,8 +110,6 @@ export function triage(
         ALLOWED_TOOLS,
         '--max-turns',
         '25',
-        // Load this repository's settings, not the user's, so the job
-        // depends less on the machine it runs on.
         '--setting-sources',
         'project,local',
       ],
@@ -141,7 +119,6 @@ export function triage(
     const result = parseResult(run.stdout ?? '')
     const stamp = now.toISOString().slice(0, 16).replace('T', ' ')
     if (!result.ok) {
-      // Not marked as seen: the next run tries this report again.
       summary.failed++
       summary.lines.push(
         `${stamp} FAILED ${report.name}: ${result.why}`,

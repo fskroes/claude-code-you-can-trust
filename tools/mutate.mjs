@@ -1,15 +1,4 @@
 #!/usr/bin/env node
-// Does any test notice when the code is wrong? Change one operator at a
-// time in a copy of the project, run the tests, and count the changes
-// nobody noticed.
-//
-//   node tools/mutate.mjs app/store.mjs
-//   node tools/mutate.mjs app/store.mjs --test "node --test test/app.test.mjs"
-//   node tools/mutate.mjs lib.mjs --root ../other-project
-//   node tools/mutate.mjs lib.mjs --timeout 900     a slow suite
-//
-// A "survivor" is a change the tests did not catch. Exit 1 when any
-// survive.
 import {
   cpSync,
   existsSync,
@@ -59,10 +48,6 @@ export function mutants(source) {
   return out
 }
 
-// The copy holds what git would publish, or, outside a repository,
-// everything but .git and node_modules. node_modules is linked, not
-// copied, so a project with dependencies runs. A first version left it
-// out, and with it every project that has a dependency.
 function copyProject(root, work) {
   let files = null
   try {
@@ -96,8 +81,6 @@ function copyProject(root, work) {
 }
 
 export function run({ root, target, test, timeout = 600 }) {
-  // In TypeScript and JSX, < and > are also brackets. A swap there
-  // breaks the build, the tests fail, and the mutant counts as caught.
   if (!/\.[cm]?js$/.test(target))
     throw new Error(`${target}: only .js, .mjs and .cjs files`)
   const work = mkdtempSync(join(tmpdir(), 'mutate-'))
@@ -106,9 +89,6 @@ export function run({ root, target, test, timeout = 600 }) {
     const file = join(work, target)
     const original = readFileSync(file, 'utf8')
     const lines = original.split('\n')
-    // Inside a node --test run, NODE_TEST_CONTEXT makes a nested node
-    // --test report to the parent and exit 0 even when it fails. Remove
-    // it.
     const { NODE_TEST_CONTEXT, ...env } = process.env
     const tests = (limitMs) =>
       spawnSync(test, {
@@ -131,8 +111,6 @@ export function run({ root, target, test, timeout = 600 }) {
           : `the tests fail before any change; fix them first\n${tail}`,
       )
     }
-    // A mutant that makes the suite hang is caught when it runs three
-    // times as long as the clean suite, and at least 10 s.
     const limitMs = Math.max(10_000, 3 * (Date.now() - started))
 
     const results = []

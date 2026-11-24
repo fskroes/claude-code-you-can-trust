@@ -19,8 +19,6 @@ const bash = (command, cwd = '/nowhere') =>
   decide({ tool_name: 'Bash', tool_input: { command }, cwd })
 
 // #region run-hook
-// Run the hook the way Claude Code does: JSON on stdin, then read the
-// exit code.
 function runHook(input) {
   return spawnSync('node', [GUARD], { input, encoding: 'utf8' })
 }
@@ -127,9 +125,6 @@ test('quoted text is not read as a flag or a separator', () => {
 })
 
 test('commit messages are not checked for words', () => {
-  // A word list in a hook blocked a plain message like this one. Word
-  // choice stays a writing rule; the hook keeps only checks that are
-  // never wrong.
   assert.equal(
     bash('git commit -m "support landscape mode"').block,
     false,
@@ -151,7 +146,6 @@ test('secret files are blocked, the example file is not', () => {
 })
 
 test('wrappers, subshells and flag clusters hide nothing', () => {
-  // A reviewer got past the first version with each of these.
   for (const command of [
     'env git push origin main',
     'command git push origin main',
@@ -171,9 +165,6 @@ test('wrappers, subshells and flag clusters hide nothing', () => {
 })
 
 // #region known-gaps
-// Known gaps. The hook reads the command text, so another way to run
-// the same program gets through. These tests pass on purpose: they
-// record the limit.
 test('known gap: a push inside sh -c is not seen', () => {
   assert.equal(bash('sh -c "git push origin main"').block, false)
   const result = runHook(fixture('pretooluse-push-sh-c.json'))

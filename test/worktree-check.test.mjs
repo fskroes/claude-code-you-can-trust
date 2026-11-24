@@ -48,7 +48,6 @@ test('each worktree gets its own stable port, the main checkout keeps 3000', () 
 })
 
 test('--require-linked: exit 1 in the main checkout, 0 in a worktree, 2 outside', () => {
-  // A critic found that the exit code of --require-linked had no test.
   const repo = tempRepo('main')
   const linked = `${repo}-wt`
   const outside = mkdtempSync(join(tmpdir(), 'no-repo-'))

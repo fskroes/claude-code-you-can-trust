@@ -1,5 +1,3 @@
-// The link store: one JSON file, read at start and written after each
-// change.
 import {
   readFileSync,
   writeFileSync,
@@ -9,7 +7,6 @@ import {
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 
-// no l, o, 0, 1: they look alike
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789'
 
 export function newCode(length = 6) {
@@ -43,8 +40,6 @@ export function openStore(dataDir) {
   }
 
   function save() {
-    // Write a temporary file, then rename: a crash never leaves half a
-    // file.
     writeFileSync(file + '.tmp', JSON.stringify(links, null, 2))
     renameSync(file + '.tmp', file)
   }
