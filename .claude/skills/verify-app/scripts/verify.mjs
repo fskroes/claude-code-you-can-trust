@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-// End-to-end check of the link shortener, the way a person would check
-// it.
-//
-//   node verify.mjs
-//       start the app from this working tree and check it
-//   node verify.mjs --url <base> [--expect-commit <sha>]
-//       check a running copy on this machine, and its commit
-//   node verify.mjs --url <base> --allow-remote ...
-//       the same for another host, for example after a deploy
-//
-// Prints one PASS or FAIL line per check, then a summary. Exit 0: all
-// passed. Exit 1: a check failed. Exit 2: the checks could not run.
 import { spawn } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -36,17 +24,9 @@ export function parseArgs(argv) {
     if (opts.url === undefined || opts.expectCommit === undefined)
       throw new Error(`${argv[i - 1]} needs a value`)
   }
-  // A local run starts the app itself, so there is no deployed commit
-  // to check. Ignoring the flag would print PASS for a check that never
-  // ran.
   if (opts.expectCommit && !opts.url)
     throw new Error('--expect-commit needs --url')
   // #region local-only
-  // The checks send requests to the URL. An agent that may run this
-  // script must not be able to point it at any host it likes, so a
-  // host other than this machine needs --allow-remote. The flag stops
-  // an accident, not an agent that chooses to add it. A reviewer found
-  // that a triage run could point the script at any host.
   if (opts.url && !opts.allowRemote) {
     const host = new URL(opts.url).hostname
     if (!['localhost', '127.0.0.1', '[::1]'].includes(host))
@@ -56,7 +36,6 @@ export function parseArgs(argv) {
   return opts
 }
 
-// Start the app as its own process, the way it runs in production.
 export function startApp(dataDir, commit = 'local') {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ['app/server.mjs'], {
@@ -103,8 +82,6 @@ export function startApp(dataDir, commit = 'local') {
 
 function stop(child) {
   return new Promise((resolve) => {
-    // The app may have crashed already; then there is no exit event to
-    // wait for.
     if (child.exitCode !== null || child.signalCode !== null)
       return resolve()
     child.removeAllListeners('exit')
@@ -121,7 +98,6 @@ export async function runChecks(
   { expectCommit, dataDir, timeoutMs = 5000 } = {},
 ) {
   const results = []
-  // An app that never answers must fail the check, not hang it.
   const get = (url, init = {}) =>
     fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) })
   const check = async (name, fn) => {
@@ -162,8 +138,6 @@ export async function runChecks(
     created = await res.json()
   })
   if (dataDir) {
-    // An app that ignores DATA_DIR still answers every request; it
-    // writes to some other folder, perhaps the real data.
     await check('stores in DATA_DIR', async () => {
       const file = join(dataDir, 'links.json')
       expect(existsSync(file), `nothing written to ${file}`)
@@ -188,8 +162,6 @@ export async function runChecks(
   })
   // #region odd-characters
   await check('odd characters', async () => {
-    // Text copied from a PDF: a line break, an en dash. Each one once
-    // stopped the app.
     for (const url of [
       'https://example.com/a\nb',
       'https://example.com/2026–report',
@@ -261,7 +233,6 @@ async function main() {
     await app.stop()
 
     // #region restart
-    // A unit test cannot see this one: does a link survive a restart?
     app = await startApp(dataDir)
     try {
       const res = await fetch(

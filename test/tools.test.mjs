@@ -100,8 +100,6 @@ test('mutate refuses to start when the tests already fail', () => {
 })
 
 test('mutate refuses TypeScript, where < can be a bracket', () => {
-  // A first version swapped Array<string> to Array<=string>. The build
-  // broke, and a weak test scored 4 caught of 4.
   for (const target of ['lib.ts', 'view.tsx', 'view.jsx'])
     assert.throws(
       () => run({ root: '.', target, test: 'true' }),
@@ -117,7 +115,6 @@ test('structure: each rule reports file and line', () => {
       'const dir = process.env.DATA_DIR\n' +
       "import { x } from '../test/helpers.mjs'\n",
     'app/big.mjs': 'x\n'.repeat(201),
-    // A first version read only .mjs files. A reviewer found it.
     'app/old.js': 'const a = process.env.A\n',
     'app/old.cjs': 'const b = process.env.B\n',
   })
@@ -146,8 +143,6 @@ test('structure: the companion app passes its own rules', () => {
 // #endregion structure-test
 
 test('folder with a space: the structure test passes', () => {
-  // A first version used .pathname, which keeps %20 for a space, so
-  // this test failed in "my dir". The copy runs only the one test.
   const dir = mkdtempSync(join(tmpdir(), 'tools-test-'))
   try {
     const root = join(dir, 'my dir', 'c')
@@ -164,7 +159,6 @@ test('folder with a space: the structure test passes', () => {
       {
         cwd: root,
         encoding: 'utf8',
-        // Under node --test this variable would make the child silent.
         env: { ...process.env, NODE_TEST_CONTEXT: undefined },
       },
     )
@@ -176,9 +170,6 @@ test('folder with a space: the structure test passes', () => {
 })
 
 test('structure: exactly 200 lines is allowed, 201 is not', () => {
-  // A first version counted the empty string after the final newline as
-  // a line, so a file of exactly 200 lines failed. The sub-agent that
-  // wrote chapter 7 found it.
   const dir = project({
     'app/a.mjs': 'x\n'.repeat(200),
     'app/b.mjs': 'x\n'.repeat(201),
@@ -194,9 +185,6 @@ test('structure: exactly 200 lines is allowed, 201 is not', () => {
 })
 
 test('mutate runs a project that has dependencies and a data folder', () => {
-  // A first version copied neither node_modules nor any folder named
-  // data, so the clean run of such a project failed. A reviewer found
-  // it.
   const dir = project({
     'node_modules/age-limit/package.json':
       '{"name":"age-limit","type":"module","main":"index.mjs"}',

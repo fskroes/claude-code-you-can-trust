@@ -15,7 +15,8 @@ import {
   parseResult,
   triage,
 } from '../tools/triage-inbox.mjs'
-import { replay } from '../tools/request.mjs'
+import { USAGE, replay } from '../tools/request.mjs'
+import { spawnSync } from 'node:child_process'
 
 const FAKE = fileURLToPath(
   new URL('./fixtures/fake-claude.mjs', import.meta.url),
@@ -158,8 +159,6 @@ test('parseResult accepts only an answer that starts with a verdict', () => {
     'UNCLEAR',
   )
   assert.equal(parseResult(json('Reproduced it!')).ok, false)
-  // A reviewer found that these passed: the word must end where the
-  // verdict ends.
   assert.equal(parseResult(json('REPRODUCEDX nonsense')).ok, false)
   assert.equal(parseResult(json('UNCLEARLY')).ok, false)
   assert.equal(parseResult(json('REPRODUCED.')).verdict, 'REPRODUCED')
@@ -211,8 +210,6 @@ test('request.mjs refuses a path that would leave the app', async () => {
 })
 
 // #region after-the-bug
-// Written after the newline bug. The triage eval removes it from the
-// copy that has the bug back.
 test('the line-break steps redirect and the app keeps running', async () => {
   const steps = JSON.parse(
     readFileSync(
@@ -237,4 +234,15 @@ test('request.mjs: a normal redirect, a running app', async () => {
   ])
   assert.match(lines[1], /-> 302 location="https:\/\/example\.com\/ok"/)
   assert.equal(lines.at(-1), 'app: still running')
+})
+
+test('request.mjs --help prints the step format; a bad argument prints it too', () => {
+  const script = fileURLToPath(new URL('../tools/request.mjs', import.meta.url))
+  const help = spawnSync(process.execPath, [script, '--help'], { encoding: 'utf8' })
+  assert.equal(help.status, 0)
+  assert.equal(help.stdout, `${USAGE}\n`)
+  assert.match(USAGE, /"path":"\{short\}"/)
+  const bad = spawnSync(process.execPath, [script, 'not json'], { encoding: 'utf8' })
+  assert.equal(bad.status, 2)
+  assert.ok(bad.stderr.includes(USAGE))
 })

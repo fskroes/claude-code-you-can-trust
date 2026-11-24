@@ -14,7 +14,7 @@ A small link shortener: `app/server.mjs` (HTTP) and `app/store.mjs`
 - `node tools/mutate.mjs <file> --test "<command>"`: do the tests
   notice a wrong operator? Run after you add a test.
 
-## Rules that code checks (read the file for the reason)
+## Rules that code checks (`git log <file>` has the reason)
 
 - No push to main, no `--no-verify`, no bare `--force`, no Edit or
   Write to `.env`: `.claude/hooks/guard.mjs`.

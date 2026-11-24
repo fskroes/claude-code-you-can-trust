@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-// PreToolUse guard. Blocks a short list of actions that are never right
-// in this repository, whatever the prompt says. It matches command
-// text, so it stops the usual mistake, not a determined workaround: see
-// "Known gaps" in test/guard.test.mjs.
 import { execFileSync } from 'node:child_process'
 import { basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,7 +13,6 @@ const WRAPPERS = new Set([
   'time',
   'sudo',
 ])
-// The options of a wrapper that take the next word as their value.
 const TAKES_VALUE = {
   sudo: ['-u', '-g', '-C', '-D', '-h', '-p', '-r', '-t', '-U', '-T'],
   env: ['-u', '-C'],
@@ -25,8 +20,6 @@ const TAKES_VALUE = {
 }
 
 // #region split
-// "npm test && git push origin main" is two commands. Check each one.
-// A separator inside quotes ("fix a; b") is text, not a separator.
 export function splitCommands(command) {
   const parts = []
   let current = ''
@@ -51,22 +44,14 @@ export function splitCommands(command) {
 }
 // #endregion split
 
-// Split one command into words. Quotes group words, so the text of a
-// commit message ("docs: explain --no-verify") is one word, not a flag.
 export function words(command) {
   const out = []
   const re = /"((?:[^"\\]|\\.)*)"|'([^']*)'|(\S+)/g
   for (const m of command.matchAll(re)) out.push(m[1] ?? m[2] ?? m[3])
-  // "(git push origin main)" runs in a subshell: drop the brackets.
   if (out.length) {
     out[0] = out[0].replace(/^\(+/, '')
     out[out.length - 1] = out.at(-1).replace(/\)+$/, '')
   }
-  // Drop "VAR=value" prefixes, and wrappers that run the next word as
-  // the command. A reviewer got past the first version with "env git
-  // push" and "command git push".
-  // A second review got past that with "sudo -E" and "env -i", so the
-  // options of a wrapper are dropped too.
   let wrapper = null
   while (out.length) {
     const w = out[0]
@@ -110,7 +95,6 @@ function checkGit(words, cwd) {
       'Fix what they report.'
     )
   }
-  // A short flag can hide in a cluster: "-nm" is "-n -m".
   const short = (letter) =>
     words.some((w) =>
       new RegExp(`^-[a-zA-Z]*${letter}[a-zA-Z]*$`).test(w),
@@ -128,12 +112,10 @@ function checkGit(words, cwd) {
   if (force && !words.some((w) => w.startsWith('--force-with-lease'))) {
     return 'Use --force-with-lease, never a bare --force.'
   }
-  // The targets are the words after "git push" that are not flags.
   const targets = words.slice(2).filter((w) => !w.startsWith('-'))
   const refs = targets
     .slice(1)
     .map((r) => r.replace(/^\+/, '').split(':').pop())
-  // No branch named, or HEAD: the push goes to the branch you are on.
   for (const ref of refs.length ? refs : ['HEAD']) {
     const name = (ref === 'HEAD' ? currentBranch(cwd) : ref).replace(
       /^refs\/heads\//,
@@ -193,15 +175,13 @@ async function main() {
     for await (const chunk of process.stdin) chunks.push(chunk)
     event = JSON.parse(Buffer.concat(chunks).toString('utf8'))
   } catch {
-    // A guard that cannot read its input must not let the call run.
     console.error('guard: could not read the hook input as JSON')
     process.exit(2)
   }
   const { block, reason } = decide(event)
   if (block) {
-    // Claude reads stderr as the reason for the block.
     console.error(reason)
-    process.exit(2) // Exit 2 blocks. Exit 1 would let the call through.
+    process.exit(2)
   }
   process.exit(0)
 }

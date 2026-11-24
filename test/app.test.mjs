@@ -14,8 +14,6 @@ async function withApp(fn) {
   try {
     await fn(base, dataDir)
   } finally {
-    // Without this, a response that never finished keeps close()
-    // waiting, and a failing test hangs instead of failing.
     app.closeAllConnections()
     await new Promise((resolve) => app.close(resolve))
     rmSync(dataDir, { recursive: true, force: true })
@@ -70,8 +68,6 @@ test('bad input gets a 4xx, not a crash', async () => {
 })
 
 // #region newline-regression
-// Found by the outer loop: a report said "the whole site is down" after
-// someone shortened a URL copied from a PDF. The URL held a line break.
 test('a line break in a URL: stored parsed, redirects', async () => {
   await withApp(async (base) => {
     const created = await fetch(`${base}/links`, {
@@ -90,9 +86,6 @@ test('a line break in a URL: stored parsed, redirects', async () => {
   })
 })
 
-// The triage run found a second way to the same crash: an en dash,
-// which PDFs put where a hyphen was. Node refuses a header character
-// above U+00FF.
 test('an en dash in a URL: stored encoded, redirects', async () => {
   await withApp(async (base) => {
     const created = await fetch(`${base}/links`, {
@@ -111,7 +104,7 @@ test(
   { skip: process.getuid?.() === 0 },
   async () => {
     await withApp(async (base, dataDir) => {
-      chmodSync(dataDir, 0o555) // the next write fails
+      chmodSync(dataDir, 0o555)
       try {
         const created = await fetch(`${base}/links`, {
           method: 'POST',

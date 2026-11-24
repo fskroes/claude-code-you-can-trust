@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// Structure rules for app/. Each rule exists because an agent broke it
-// once. Output: one line per problem, "file:line rule: message". Exit 1
-// on any problem.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -64,7 +61,7 @@ function filesUnder(dir) {
     const path = join(dir, name)
     return statSync(path).isDirectory()
       ? filesUnder(path)
-      : /\.[cm]?js$/.test(path) // .js, .mjs and .cjs
+      : /\.[cm]?js$/.test(path)
         ? [path]
         : []
   })
@@ -74,7 +71,6 @@ export function checkTree(root) {
   const problems = []
   for (const path of filesUnder(join(root, 'app'))) {
     const file = relative(root, path).split('\\').join('/')
-    // A final newline ends the last line; it does not start one more.
     const lines = readFileSync(path, 'utf8')
       .replace(/\n$/, '')
       .split('\n')

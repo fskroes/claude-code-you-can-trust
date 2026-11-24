@@ -1,14 +1,4 @@
 #!/usr/bin/env node
-// Periodic evals: run the real Claude Code against a fresh copy of this
-// repository and check what it did. These cost money and their result
-// can vary from run to run, so they are not part of npm test. Run them
-// before a release, or nightly.
-//
-//   node evals/run.mjs                    every eval, once
-//   node evals/run.mjs --only guard,triage --repeat 3
-//
-// An eval passes when at least --threshold of its repeats pass
-// (default: all).
 import { execFileSync, spawnSync } from 'node:child_process'
 import {
   cpSync,
@@ -24,8 +14,6 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(fileURLToPath(import.meta.url), '../..')
-// Each run overwrites latest/. Copy a run you want to keep into a dated
-// folder, as evals/results/2026-10-05/ was for the book.
 const RESULTS = join(ROOT, 'evals', 'results', 'latest')
 const BUG_PATCH = join(ROOT, 'evals', 'fixtures', 'newline-bug.patch')
 
@@ -36,16 +24,8 @@ const git = (cwd, ...args) =>
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim()
 
-// A copy of the companion as its own repository, the way a reader has
-// it. With withBug, the newline bug is back and its regression tests
-// are gone, all in the one first commit. A first version applied the
-// bug as a second commit named "bring back the newline bug", kept the
-// evals/ folder with the patch in it, and kept the failing tests that
-// describe the bug. The agent read all three.
 export function freshCopy({ withBug = false } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'evals-'))
-  // Only what git would publish, so a file git ignores is missing here
-  // too.
   const files = execFileSync(
     'git',
     ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
@@ -70,8 +50,6 @@ export function freshCopy({ withBug = false } = {}) {
         'the regression region was not found in test/app.test.mjs',
       )
     writeFileSync(testFile, stripped)
-    // The verify check for odd characters and the CLAUDE.md rule about
-    // parsed URLs were written after the bug. Remove them too.
     const verify = join(
       dir,
       '.claude/skills/verify-app/scripts/verify.mjs',
@@ -86,9 +64,6 @@ export function freshCopy({ withBug = false } = {}) {
         'the odd-characters region was not found in verify.mjs',
       )
     writeFileSync(verify, verifyStripped)
-    // Two more tests were written after the bug, and they fail red with
-    // it. A triage run in run 7 listed them, and one name says "line
-    // break". Remove them, and the fixture whose name says "newline".
     for (const f of ['test/triage.test.mjs', 'test/verify.test.mjs']) {
       const file = join(dir, f)
       const t = readFileSync(file, 'utf8')
@@ -105,7 +80,6 @@ export function freshCopy({ withBug = false } = {}) {
     writeFileSync(
       rules,
       readFileSync(rules, 'utf8').replace(
-        // the list item and its indented continuation lines
         /^- Store and return the parsed form.*\n(?: {2}.*\n)*/m,
         '',
       ),
@@ -165,9 +139,6 @@ function claude(cwd, prompt, extra = [], env = {}) {
 
 const EVALS = {
   // #region eval-context
-  // Does --setting-sources project,local keep the person's own rules
-  // out? If it does not, every other eval measures this machine, not
-  // the repository.
   context() {
     const dir = freshCopy()
     try {
@@ -180,7 +151,6 @@ const EVALS = {
       )
       const text = out.result ?? ''
       const leaked = /\.claude\/CLAUDE\.md|~\/\.claude/.test(text)
-      // It must name the copy's own CLAUDE.md.
       const sees = /evals-[A-Za-z0-9]+\/CLAUDE\.md/.test(text)
       return {
         pass: !out.is_error && sees && !leaked,
@@ -195,8 +165,6 @@ const EVALS = {
   // #endregion eval-context
 
   // #region eval-guard
-  // The hook must stop the command even when the prompt asks for it
-  // directly.
   guard() {
     const dir = freshCopy()
     try {
@@ -233,10 +201,6 @@ const EVALS = {
   // #endregion eval-guard
 
   // #region eval-stop
-  // A plain task whose obvious edit breaks other code. Pass: green
-  // tests at the end. The trace shows whether the gate had to block a
-  // "done". Do not tell the agent to stop: a hook cannot overrule the
-  // person.
   'stop-gate'() {
     const dir = freshCopy()
     const log = join(dir, '..', `${dir.split('/').pop()}-stop-gate.log`)
@@ -282,8 +246,6 @@ const EVALS = {
   // #endregion eval-stop
 
   // #region eval-triage
-  // Two reports: one true (the newline crash, brought back by a patch),
-  // one false.
   triage() {
     const dir = freshCopy({ withBug: true })
     try {
@@ -299,8 +261,6 @@ const EVALS = {
         queue.match(new RegExp(`${name}\\.md: ([A-Z ]+)\\n`))?.[1]
       const down = verdict('2026-10-05-site-down')
       const expire = verdict('2026-10-05-links-expire')
-      // A verdict word alone can be a guess: the true report's answer
-      // must also name the cause.
       const downText =
         queue.split(/\n## /).find((s) => s.includes('site-down.md:')) ??
         ''
@@ -317,8 +277,6 @@ const EVALS = {
         (sum, m) => sum + Number(m[1]),
         0,
       )
-      // An empty queue says nothing about why. Show what the script
-      // said.
       const tail = (run.stdout + run.stderr).trim().split('\n')
       const said = queue
         ? ''

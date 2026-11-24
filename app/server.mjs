@@ -1,5 +1,3 @@
-// A small link shortener. The subject every chapter of the book works
-// on.
 import { createServer } from 'node:http'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -24,8 +22,6 @@ function readBody(req) {
       if (size <= MAX_BODY) chunks.push(chunk)
     })
     req.on('end', () => {
-      // Read to the end before answering: a reply sent mid-upload can
-      // reach the client as a reset connection instead of a 413.
       if (size > MAX_BODY)
         reject(
           Object.assign(new Error('body too large'), { status: 413 }),
@@ -66,9 +62,6 @@ export function createApp({ dataDir, commit }) {
       if (!isValidUrl(body?.url))
         return send(res, 400, { error: 'bad_url' })
       // #region store-parsed
-      // Store the parsed form. The parser drops line breaks that the
-      // raw text keeps, and a line break in a Location header stops the
-      // response.
       const url = new URL(body.url).href
       // #endregion store-parsed
       const code = store.add(url)
@@ -87,9 +80,6 @@ export function createApp({ dataDir, commit }) {
   }
 
   // #region catch-all
-  // One bad request must not stop the server for everyone. An error
-  // inside a handler becomes a 500 for that request, and the error goes
-  // to the log.
   return createServer((req, res) => {
     route(req, res).catch((err) => {
       console.error(err)

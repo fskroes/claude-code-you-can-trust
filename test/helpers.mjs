@@ -1,6 +1,3 @@
-// Shared test helpers. Every test that needs git makes its own
-// repository in a temporary directory, so no test touches the reader's
-// checkout.
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'

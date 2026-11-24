@@ -20,9 +20,6 @@ import {
 import { git, tempRepo } from './helpers.mjs'
 
 // #region paths-exist
-// A mistyped hook path does not fail loudly: the hook cannot start,
-// Claude Code reports a non-blocking error, and the tool call goes
-// through. Check every path.
 test('every hook in settings.json points at a file that exists', () => {
   let count = 0
   for (const groups of Object.values(settings.hooks)) {
@@ -50,16 +47,14 @@ test('the guard runs before Bash, Edit and Write', () => {
 })
 
 // #region deny-rules
-// Pin every list whole. A first version did not pin the ask rule:
-// deleting it left the test passing.
 test('the permission lists are exactly these', () => {
   const { allow, ask, deny } = settings.permissions
   assert.deepEqual(ask, ['Bash(git push *)'])
   assert.deepEqual(deny, [
     'Read(./.env)',
     'Read(./.env.*)',
-    'Read(!.env.example)', // a carve-out applies to rules above it
-    'Edit(./.env)', // Edit rules also stop "echo >> .env" and sed -i
+    'Read(!.env.example)',
+    'Edit(./.env)',
     'Edit(./.env.*)',
     'Edit(!.env.example)',
   ])
@@ -73,8 +68,6 @@ test('the permission lists are exactly these', () => {
 })
 // #endregion deny-rules
 
-// A stand-in for the shell: git answers from the arguments, and the
-// test command answers with `tests`.
 function fakeRun({
   status = '',
   head = 'abc123',
@@ -94,7 +87,6 @@ function fakeRun({
   return { run, calls }
 }
 
-// The state the session started at, as the SessionStart hook wrote it.
 const startedAt = (state) => ({ read: () => state })
 const stateOf = (opts) => treeState('/x', fakeRun(opts).run)
 
@@ -110,17 +102,12 @@ test('stop gate: red tests after a change keep the agent working', () => {
 })
 
 test('stop gate: a commit made in this session is tested', () => {
-  // The second version skipped every clean tree, so an agent that
-  // committed red code and then stopped passed. A reviewer found it.
   const start = stateOf({ head: 'abc123' })
   const { run } = fakeRun({ head: 'def456', tests: RED })
   assert.equal(gate({ cwd: '/x' }, run, startedAt(start)).block, true)
 })
 
 test('stop gate: a session that changed nothing is not judged', () => {
-  // The third version tested every clean tree. A triage run, which
-  // must not fix anything, met red tests in its copy and was blocked
-  // until Claude Code ended the turn.
   for (const before of [{}, { status: ' M a\n', diff: 'x' }]) {
     const { run, calls } = fakeRun({ ...before, tests: RED })
     const result = gate({ cwd: '/x' }, run, startedAt(stateOf(before)))
@@ -130,8 +117,6 @@ test('stop gate: a session that changed nothing is not judged', () => {
 })
 
 test('stop gate: a change on top of a dirty start is tested', () => {
-  // The fourth version compared only the commit, so a session that
-  // started dirty was always tested. A reviewer found it.
   const start = stateOf({ status: ' M a\n', diff: 'x' })
   const { run } = fakeRun({ status: ' M a\n', diff: 'y', tests: RED })
   assert.equal(gate({ cwd: '/x' }, run, startedAt(start)).block, true)
@@ -143,8 +128,6 @@ test('stop gate: with no record of the start, the tests run', () => {
 })
 
 test('stop gate: a second stop with red tests is still blocked', () => {
-  // The first version let this through. The stop-gate eval caught the
-  // agent stopping with failing tests on its second try.
   const { run } = fakeRun({ status: ' M app/store.mjs\n', tests: RED })
   const event = { cwd: '/x', stop_hook_active: true }
   assert.equal(gate(event, run, startedAt(stateOf({}))).block, true)
@@ -156,8 +139,6 @@ test('stop gate: green tests let the agent stop', () => {
 })
 
 test('stop gate: a test run over the time limit lets the agent stop', () => {
-  // Blocking here sent the agent back with an empty reason, again and
-  // again: no change it can make shortens the suite.
   const slow = { code: 1, out: '', timedOut: true }
   const { run } = fakeRun({ status: ' M a\n', tests: slow })
   const result = gate({ cwd: '/x' }, run, startedAt(null))
@@ -185,14 +166,14 @@ test('stop gate: a real repository and the SessionStart record', () => {
     git(repo, 'commit', '-q', '-m', 'red before the session')
     writeFileSync(join(repo, 'notes.txt'), 'left from yesterday\n')
     startMark.writeOnce(event)
-    assert.equal(gate(event).block, false) // nothing changed yet
+    assert.equal(gate(event).block, false)
     writeFileSync(join(repo, 'notes.txt'), 'edited\n')
-    assert.equal(gate(event).block, true) // an untracked file changed
+    assert.equal(gate(event).block, true)
     git(repo, 'add', '-A')
     git(repo, 'commit', '-qm', 'still red')
-    assert.equal(gate(event).block, true) // committed in this session
+    assert.equal(gate(event).block, true)
     const first = startMark.read(event)
-    startMark.writeOnce(event) // the first record wins
+    startMark.writeOnce(event)
     assert.equal(startMark.read(event), first)
   } finally {
     rmSync(repo, { recursive: true, force: true })

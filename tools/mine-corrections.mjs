@@ -1,15 +1,4 @@
 #!/usr/bin/env node
-// Where do you correct the agent? Read your Claude Code transcripts,
-// keep the prompts you typed, and count the ones that correct or stop
-// the agent.
-//
-//   node tools/mine-corrections.mjs                       every project in ~/.claude/projects
-//   node tools/mine-corrections.mjs ~/.claude/projects/-home-you-shortlinks
-//   node tools/mine-corrections.mjs <dir> --json
-//
-// The transcript format is internal to Claude Code and can change in
-// any release. This script reads only a few fields and skips every line
-// it does not understand.
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -33,25 +22,16 @@ export const PATTERNS = [
 // #endregion patterns
 
 // #region typed-text
-// The text a person typed, or null for anything else: tool results,
-// system notes, slash command wrappers, subagent prompts.
 export function typedText(entry) {
   if (entry?.type !== 'user' || entry.isMeta || entry.isSidechain)
     return null
-  // A compaction summary is stored as a user turn. So are notifications
-  // and subagent reports; origin.kind says who sent those. Many typed
-  // prompts have no origin at all, so a missing origin counts as you.
   if (entry.isCompactSummary || entry.isVisibleInTranscriptOnly)
     return null
   if (entry.origin && entry.origin.kind !== 'human') return null
-  // A claude -p run writes its prompt as a user turn too, with the
-  // entrypoint sdk-cli. A script wrote that prompt, not you.
   if (entry.entrypoint === 'sdk-cli') return null
   const content = entry.message?.content
   let text = null
   if (typeof content === 'string') text = content
-  // A list of parts counts when every part is text or an image (a
-  // pasted image). A tool_result part means the turn is not a prompt.
   else if (
     Array.isArray(content) &&
     content.every((p) => p?.type === 'text' || p?.type === 'image')
@@ -67,8 +47,6 @@ export function typedText(entry) {
 // #endregion typed-text
 
 // #region classify
-// A correction comes first in a message. Look at the start only, so a
-// long pasted log that contains "wrong" somewhere is not counted.
 export function classify(text) {
   if (text.startsWith('[Request interrupted by user'))
     return 'interrupt'
@@ -78,9 +56,6 @@ export function classify(text) {
 // #endregion classify
 
 function transcriptFiles(dir) {
-  // Top-level .jsonl files only: subagent transcripts live in
-  // subdirectories, and their "user" turns were written by the main
-  // agent, not by you.
   const own = readdirSync(dir)
     .filter((f) => f.endsWith('.jsonl'))
     .map((f) => join(dir, f))

@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-// A worktree gives each session its own files. It does not give it its
-// own port. This prints where you are and a port that belongs to this
-// worktree.
-//
-//   node tools/worktree-check.mjs              print the facts
-//   node tools/worktree-check.mjs --require-linked
-//                                              exit 1 in the main checkout
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
@@ -17,11 +10,6 @@ const gitPath = (cwd, flag) =>
   ).trim()
 
 // #region shared
-// In the main checkout, the git directory and the common git directory
-// are the same path. In a linked worktree they differ.
-// --path-format=absolute matters: from a subdirectory the common
-// directory comes back relative, and a relative path never equals an
-// absolute one, so the check would always say "linked".
 export function inMainCheckout(cwd) {
   return gitPath(cwd, '--git-dir') === gitPath(cwd, '--git-common-dir')
 }

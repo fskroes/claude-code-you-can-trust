@@ -1,14 +1,4 @@
 #!/usr/bin/env node
-// Start the app with an empty data directory, send a list of requests,
-// and report what came back, including a crash. A narrow tool for an
-// agent that must reproduce a report without the right to run any code
-// it likes.
-//
-//   node tools/request.mjs '[{"method":"POST","path":"/links","body":{"url":"https://example.com"}},
-//                            {"method":"GET","path":"{short}"}]'
-//
-// "{short}" is replaced with the "short" field of the last response
-// that had one.
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -30,10 +20,6 @@ export async function replay(steps) {
             ? step.body
             : JSON.stringify(step.body)
       // #region same-origin
-      // Only the local copy. "app.base + path" with a path such as
-      // "@evil.example/x" made the local address a user name and sent
-      // the request to another host. An agent that read this code
-      // found it.
       const url = new URL(path, app.base)
       if (
         !path.startsWith('/') ||
@@ -76,15 +62,26 @@ export async function replay(steps) {
   }
 }
 
+export const USAGE = `Start the app with an empty data directory, send a list of requests,
+and report what came back, including a crash.
+
+  node tools/request.mjs '[{"method":"POST","path":"/links","body":{"url":"https://example.com"}},
+                           {"method":"GET","path":"{short}"}]'
+
+"{short}" is replaced with the "short" field of the last response
+that had one.`
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  if (process.argv[2] === '--help') {
+    console.log(USAGE)
+    process.exit(0)
+  }
   let steps
   try {
     steps = JSON.parse(process.argv[2] ?? '')
     if (!Array.isArray(steps)) throw new Error('not a list')
   } catch {
-    console.error(
-      'request: pass one JSON list of steps, see the comment at the top of this file',
-    )
+    console.error(`request: pass one JSON list of steps\n\n${USAGE}`)
     process.exit(2)
   }
   for (const line of await replay(steps)) console.log(line)
